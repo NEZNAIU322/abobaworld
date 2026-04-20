@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 
 type ThemeMode = "dark" | "light";
 
@@ -104,7 +105,7 @@ const ruleGroups = [
     icon: "🎤",
     items: [
       "На сервере обязателен мод PlasmoVoice Chat.",
-      "За отсутствие PlasmoVoice Chat вас могут кикнуть, а при игнорировании требования — выдать варн.",
+      "За отсутствие PlasmoVoice Chat вас могут кикнуть или выдать варн при игнорировании.",
       "Перед входом на сервер лучше сразу установить и проверить работу мода.",
     ],
   },
@@ -151,6 +152,7 @@ function App() {
   const [isPaying, setIsPaying] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
 
+  const rootRef = useRef<HTMLDivElement>(null);
   const isDark = theme === "dark";
 
   useEffect(() => {
@@ -185,37 +187,40 @@ function App() {
   }, [selectedPlan]);
 
   const colors = {
-    panel: isDark ? "rgba(10,10,12,.88)" : "rgba(255,255,255,.92)",
-    panelSoft: isDark ? "#121217" : "#f8fafc",
+    panel: isDark ? "rgba(10,10,12,.82)" : "rgba(255,255,255,.82)",
+    panelSoft: isDark ? "rgba(18,18,23,.88)" : "rgba(248,250,252,.9)",
     text: isDark ? "#ffffff" : "#111827",
     softText: isDark ? "#d4d4d8" : "#4b5563",
     muted: isDark ? "#a1a1aa" : "#6b7280",
-    border: isDark ? "#27272a" : "#d4d4d8",
+    border: isDark ? "rgba(63,63,70,.75)" : "rgba(212,212,216,.9)",
     greenText: isDark ? "#d1fae5" : "#166534",
     greenBg: isDark ? "rgba(16,185,129,.12)" : "#ecfdf5",
     greenBorder: isDark ? "rgba(16,185,129,.26)" : "#86efac",
   };
 
-  const cardStyle: React.CSSProperties = {
-    border: `2px solid ${colors.border}`,
+  const cardStyle: CSSProperties = {
+    border: `1px solid ${colors.border}`,
     background: colors.panel,
     boxShadow: isDark
       ? "0 18px 55px rgba(0,0,0,.35)"
       : "0 18px 45px rgba(15,23,42,.08)",
-    backdropFilter: "blur(10px)",
+    backdropFilter: "blur(14px)",
+    borderRadius: 20,
   };
 
-  const pixelButton = (bg: string, color: string): React.CSSProperties => ({
+  const pixelButton = (bg: string, color: string): CSSProperties => ({
     background: bg,
     color,
     border: "none",
-    borderRight: "4px solid rgba(0,0,0,.35)",
-    borderBottom: "4px solid rgba(0,0,0,.35)",
-    padding: "12px 16px",
+    padding: "13px 18px",
     fontWeight: 800,
     cursor: "pointer",
     fontSize: 14,
-    transition: "transform .15s ease, filter .15s ease",
+    transition: "transform .25s ease, filter .25s ease, box-shadow .25s ease",
+    borderRadius: 14,
+    boxShadow: "0 10px 25px rgba(0,0,0,.18)",
+    position: "relative",
+    overflow: "hidden",
   });
 
   async function copyIp() {
@@ -237,22 +242,210 @@ function App() {
     }, 1500);
   }
 
+  function handleMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect || !rootRef.current) return;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    rootRef.current.style.setProperty("--mx", `${x}px`);
+    rootRef.current.style.setProperty("--my", `${y}px`);
+  }
+
   return (
     <div
-      style={{
-        minHeight: "100vh",
-        background: isDark
-          ? "radial-gradient(circle at top right, rgba(16,185,129,.10), transparent 25%), radial-gradient(circle at bottom left, rgba(217,70,239,.08), transparent 22%), #09090b"
-          : "radial-gradient(circle at top right, rgba(16,185,129,.10), transparent 25%), radial-gradient(circle at bottom left, rgba(34,197,94,.06), transparent 22%), #f2f6f3",
-      }}
+      ref={rootRef}
+      onMouseMove={handleMove}
+      style={
+        {
+          minHeight: "100vh",
+          background: isDark
+            ? "radial-gradient(circle at top right, rgba(16,185,129,.10), transparent 25%), radial-gradient(circle at bottom left, rgba(217,70,239,.08), transparent 22%), #09090b"
+            : "radial-gradient(circle at top right, rgba(16,185,129,.10), transparent 25%), radial-gradient(circle at bottom left, rgba(34,197,94,.06), transparent 22%), #f2f6f3",
+          position: "relative",
+          overflow: "hidden",
+          ["--mx" as string]: "50%",
+          ["--my" as string]: "50%",
+        } as CSSProperties
+      }
     >
       <style>{`
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        a:hover, button:hover { filter: brightness(1.05); }
-        button:active { transform: translateY(1px); }
-        details summary { list-style: none; }
-        details summary::-webkit-details-marker { display: none; }
+        body { overflow-x: hidden; }
+
+        @keyframes floatY {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+
+        @keyframes floatSoft {
+          0%, 100% { transform: translate3d(0,0,0); }
+          50% { transform: translate3d(0,-6px,0); }
+        }
+
+        @keyframes pulseGlow {
+          0%, 100% { opacity: .35; transform: scale(1); }
+          50% { opacity: .7; transform: scale(1.08); }
+        }
+
+        @keyframes shine {
+          0% { transform: translateX(-140%); }
+          100% { transform: translateX(220%); }
+        }
+
+        @keyframes spinSlow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeUp {
+          0% { opacity: 0; transform: translateY(18px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes particleMove {
+          0% { transform: translateY(0px) translateX(0px) scale(1); opacity: .15; }
+          50% { transform: translateY(-18px) translateX(8px) scale(1.18); opacity: .45; }
+          100% { transform: translateY(0px) translateX(0px) scale(1); opacity: .15; }
+        }
+
+        .fade-up { animation: fadeUp .7s ease both; }
+        .float-soft { animation: floatSoft 5s ease-in-out infinite; }
+        .glass-card {
+          transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease, background .28s ease;
+        }
+        .glass-card:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 28px 60px rgba(0,0,0,.28);
+        }
+
+        .shine-btn::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          width: 40%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+          transform: translateX(-140%);
+          animation: shine 3.8s linear infinite;
+        }
+
+        .hero-orb-a, .hero-orb-b {
+          position: absolute;
+          border-radius: 999px;
+          filter: blur(55px);
+          pointer-events: none;
+          animation: pulseGlow 5s ease-in-out infinite;
+        }
+
+        .hero-orb-a {
+          width: 320px;
+          height: 320px;
+          right: -80px;
+          top: -60px;
+          background: rgba(16,185,129,.15);
+        }
+
+        .hero-orb-b {
+          width: 260px;
+          height: 260px;
+          left: -60px;
+          bottom: 40px;
+          background: rgba(168,85,247,.13);
+          animation-delay: 1.4s;
+        }
+
+        .cursor-glow {
+          position: fixed;
+          left: calc(var(--mx) - 120px);
+          top: calc(var(--my) - 120px);
+          width: 240px;
+          height: 240px;
+          border-radius: 999px;
+          background: radial-gradient(circle, rgba(110,231,183,.14), transparent 65%);
+          pointer-events: none;
+          filter: blur(24px);
+          z-index: 0;
+          transition: left .08s linear, top .08s linear;
+        }
+
+        .particles {
+          pointer-events: none;
+          position: fixed;
+          inset: 0;
+          overflow: hidden;
+          z-index: 0;
+        }
+
+        .particle {
+          position: absolute;
+          border-radius: 999px;
+          animation: particleMove ease-in-out infinite;
+        }
+
+        .hero-title {
+          background: linear-gradient(180deg, #fff 0%, #c7f9dd 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          text-shadow: 0 0 20px rgba(255,255,255,.08);
+        }
+
+        .ring-spin {
+          animation: spinSlow 18s linear infinite;
+        }
+
+        .plan-card {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .plan-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(120deg, transparent 20%, rgba(255,255,255,.08) 45%, transparent 70%);
+          transform: translateX(-120%);
+          transition: transform .7s ease;
+          pointer-events: none;
+        }
+
+        .plan-card:hover::after {
+          transform: translateX(120%);
+        }
+
+        .badge-pop {
+          animation: pulseGlow 3.4s ease-in-out infinite;
+        }
+
+        details {
+          overflow: hidden;
+        }
+
+        details[open] summary {
+          margin-bottom: 14px;
+        }
+
+        summary {
+          transition: transform .2s ease;
+        }
+
+        details:hover summary {
+          transform: translateX(4px);
+        }
+
+        .live-panel {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .live-panel::before {
+          content: "";
+          position: absolute;
+          inset: -1px;
+          background: linear-gradient(130deg, rgba(16,185,129,.22), transparent 35%, rgba(99,102,241,.18), transparent 70%);
+          opacity: .5;
+          pointer-events: none;
+        }
 
         @media (max-width: 1100px) {
           .hero-grid, .booster-grid, .contact-grid, .footer-grid {
@@ -261,10 +454,10 @@ function App() {
         }
 
         @media (max-width: 900px) {
-          .stats-grid, .features-grid, .mini-grid, .steps-grid, .about-grid {
+          .stats-grid, .features-grid, .steps-grid, .about-grid {
             grid-template-columns: 1fr !important;
           }
-          .plans-grid {
+          .mini-grid, .plans-grid {
             grid-template-columns: 1fr !important;
           }
           .header-row {
@@ -284,6 +477,26 @@ function App() {
         }
       `}</style>
 
+      <div className="cursor-glow" />
+
+      <div className="particles">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <span
+            key={i}
+            className="particle"
+            style={{
+              width: 6 + (i % 5) * 6,
+              height: 6 + (i % 5) * 6,
+              left: `${(i * 17) % 100}%`,
+              top: `${(i * 11) % 100}%`,
+              background: i % 2 === 0 ? "rgba(110,231,183,.18)" : "rgba(192,132,252,.14)",
+              animationDuration: `${5 + (i % 6)}s`,
+              animationDelay: `${i * 0.2}s`,
+            }}
+          />
+        ))}
+      </div>
+
       <div
         style={{
           position: "fixed",
@@ -293,8 +506,12 @@ function App() {
             ? "linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px)"
             : "linear-gradient(rgba(0,0,0,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.035) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
+          zIndex: 0,
         }}
       />
+
+      <div className="hero-orb-a" />
+      <div className="hero-orb-b" />
 
       <div
         style={{
@@ -306,6 +523,7 @@ function App() {
         }}
       >
         <header
+          className="glass-card fade-up"
           style={{
             ...cardStyle,
             padding: 16,
@@ -327,14 +545,16 @@ function App() {
           >
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
               <div
+                className="float-soft"
                 style={{
-                  width: 46,
-                  height: 46,
+                  width: 50,
+                  height: 50,
                   display: "grid",
                   placeItems: "center",
-                  border: `2px solid ${colors.border}`,
+                  border: `1px solid ${colors.border}`,
                   background: isDark ? "rgba(255,255,255,.08)" : "#f3f4f6",
                   fontSize: 24,
+                  borderRadius: 16,
                 }}
               >
                 👑
@@ -342,23 +562,22 @@ function App() {
 
               <div>
                 <div
+                  className="live-panel"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 10,
-                    border: `2px solid ${colors.border}`,
+                    border: `1px solid ${colors.border}`,
                     background: isDark ? "#09090b" : "#ffffff",
                     padding: "10px 14px",
-                    boxShadow: isDark
-                      ? "0 6px 0 rgba(0,0,0,.35)"
-                      : "0 6px 0 rgba(0,0,0,.12)",
+                    borderRadius: 16,
                   }}
                 >
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 8px)", gap: 2 }}>
-                    <div style={{ width: 8, height: 8, background: "#22c55e" }} />
-                    <div style={{ width: 8, height: 8, background: "#15803d" }} />
-                    <div style={{ width: 8, height: 8, background: "#52525b" }} />
-                    <div style={{ width: 8, height: 8, background: "#18181b" }} />
+                    <div style={{ width: 8, height: 8, background: "#22c55e", borderRadius: 2 }} />
+                    <div style={{ width: 8, height: 8, background: "#15803d", borderRadius: 2 }} />
+                    <div style={{ width: 8, height: 8, background: "#52525b", borderRadius: 2 }} />
+                    <div style={{ width: 8, height: 8, background: "#18181b", borderRadius: 2 }} />
                   </div>
                   <span style={{ fontWeight: 900, letterSpacing: ".2em", fontSize: 22 }}>
                     ABOBAWORLD
@@ -386,7 +605,7 @@ function App() {
                 ["#start", "Как начать"],
                 ["#about", "О сервере"],
                 ["#contact", "Администрация"],
-              ].map(([href, label]) => (
+              ].map(([href, label], i) => (
                 <a
                   key={href}
                   href={href}
@@ -395,6 +614,9 @@ function App() {
                     color: colors.text,
                     padding: "10px 12px",
                     fontSize: 14,
+                    borderRadius: 12,
+                    background: i === 0 ? "rgba(255,255,255,.05)" : "transparent",
+                    transition: "transform .2s ease, background .2s ease",
                   }}
                 >
                   {label}
@@ -402,6 +624,7 @@ function App() {
               ))}
 
               <button
+                className="shine-btn"
                 onClick={() => setTheme(isDark ? "light" : "dark")}
                 style={pixelButton(isDark ? "#18181b" : "#ffffff", colors.text)}
               >
@@ -421,8 +644,9 @@ function App() {
             marginBottom: 48,
           }}
         >
-          <div>
+          <div className="fade-up" style={{ animationDelay: ".1s" }}>
             <div
+              className="badge-pop"
               style={{
                 display: "inline-block",
                 border: `1px solid ${colors.greenBorder}`,
@@ -431,12 +655,14 @@ function App() {
                 padding: "8px 12px",
                 fontWeight: 700,
                 marginBottom: 14,
+                borderRadius: 999,
               }}
             >
               Сервер онлайн • Версия 1.21.4
             </div>
 
             <h1
+              className="hero-title"
               style={{
                 margin: 0,
                 fontSize: "clamp(40px, 7vw, 72px)",
@@ -444,7 +670,7 @@ function App() {
                 fontWeight: 900,
               }}
             >
-              Добро пожаловать на <span style={{ color: "#6ee7b7" }}>AbobaWorld</span>
+              Добро пожаловать на AbobaWorld
             </h1>
 
             <p
@@ -462,6 +688,7 @@ function App() {
             </p>
 
             <div
+              className="glass-card live-panel"
               style={{
                 ...cardStyle,
                 borderColor: colors.greenBorder,
@@ -482,6 +709,7 @@ function App() {
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 20 }}>
               <button
+                className="shine-btn"
                 onClick={copyIp}
                 style={pixelButton(isDark ? "#18181b" : "#ffffff", colors.text)}
               >
@@ -489,6 +717,7 @@ function App() {
               </button>
 
               <div
+                className="glass-card"
                 style={{
                   ...cardStyle,
                   borderColor: colors.greenBorder,
@@ -499,9 +728,11 @@ function App() {
                   alignItems: "center",
                   color: colors.greenText,
                   fontSize: 14,
+                  borderRadius: 16,
                 }}
               >
-                <span>📶 Онлайн</span>
+                <span className="ring-spin" style={{ display: "inline-block" }}>📶</span>
+                <span>Онлайн</span>
                 <span style={{ opacity: 0.7 }}>•</span>
                 <span>TPS 20.0</span>
                 <span style={{ opacity: 0.7 }}>•</span>
@@ -522,8 +753,16 @@ function App() {
                 ["IP сервера", "mc.abobaworld.xyz"],
                 ["Версия", "1.21.4"],
                 ["Атмосфера", "Ваниль + комьюнити"],
-              ].map(([label, value]) => (
-                <div key={label} style={{ ...cardStyle, padding: 18 }}>
+              ].map(([label, value], idx) => (
+                <div
+                  key={label}
+                  className="glass-card float-soft"
+                  style={{
+                    ...cardStyle,
+                    padding: 18,
+                    animationDelay: `${idx * 0.5}s`,
+                  }}
+                >
                   <div style={{ color: colors.muted, fontSize: 14 }}>{label}</div>
                   <div style={{ marginTop: 8, fontWeight: 800, fontSize: 20, wordBreak: "break-word" }}>
                     {value}
@@ -533,17 +772,18 @@ function App() {
             </div>
           </div>
 
-          <div style={{ position: "relative" }}>
+          <div className="fade-up" style={{ animationDelay: ".2s", position: "relative" }}>
             <div
               style={{
                 position: "absolute",
-                inset: -16,
+                inset: -20,
                 background:
                   "linear-gradient(135deg, rgba(52,211,153,.20), rgba(217,70,239,.10), rgba(34,211,238,.10))",
-                filter: "blur(28px)",
+                filter: "blur(32px)",
+                borderRadius: 30,
               }}
             />
-            <div style={{ ...cardStyle, position: "relative", padding: 24 }}>
+            <div className="glass-card live-panel" style={{ ...cardStyle, position: "relative", padding: 24 }}>
               <div style={{ fontSize: 30, fontWeight: 900, marginBottom: 12 }}>
                 Почему сюда хочется зайти
               </div>
@@ -558,9 +798,10 @@ function App() {
                 "Понятные правила и упор на честную игру",
                 "Общение через Discord и голосовой мод",
                 "Титулы и дополнительные возможности для поддержки проекта",
-              ].map((item) => (
+              ].map((item, idx) => (
                 <div
                   key={item}
+                  className="glass-card"
                   style={{
                     ...cardStyle,
                     background: colors.panelSoft,
@@ -569,6 +810,7 @@ function App() {
                     display: "flex",
                     gap: 10,
                     alignItems: "flex-start",
+                    transform: `translateX(${idx % 2 === 0 ? 0 : 4}px)`,
                   }}
                 >
                   <span style={{ color: "#6ee7b7" }}>✔</span>
@@ -581,6 +823,7 @@ function App() {
 
         <section id="booster" style={{ marginBottom: 48 }}>
           <div
+            className="fade-up"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -610,11 +853,13 @@ function App() {
             </div>
 
             <div
+              className="badge-pop"
               style={{
                 border: "1px solid rgba(255,255,255,.15)",
                 background: "rgba(255,255,255,.08)",
                 padding: "8px 12px",
                 fontWeight: 700,
+                borderRadius: 999,
               }}
             >
               3 версии • 3 уровня ценности
@@ -629,12 +874,12 @@ function App() {
               gap: 20,
             }}
           >
-            <div style={{ ...cardStyle, overflow: "hidden" }}>
+            <div className="glass-card fade-up live-panel" style={{ ...cardStyle, overflow: "hidden", animationDelay: ".08s" }}>
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(2, 1fr)",
-                  borderBottom: `2px solid ${colors.border}`,
+                  borderBottom: `1px solid ${colors.border}`,
                 }}
               >
                 {["СТАТУС", "ПРИВИЛЕГИИ"].map((item) => (
@@ -643,7 +888,7 @@ function App() {
                     style={{
                       padding: 16,
                       textAlign: "center",
-                      borderRight: item === "СТАТУС" ? `2px solid ${colors.border}` : "none",
+                      borderRight: item === "СТАТУС" ? `1px solid ${colors.border}` : "none",
                       background: colors.panelSoft,
                       fontWeight: 800,
                       letterSpacing: ".16em",
@@ -658,6 +903,7 @@ function App() {
 
               <div style={{ padding: 24 }}>
                 <div
+                  className="badge-pop"
                   style={{
                     display: "inline-block",
                     border: "1px solid rgba(251,191,36,.3)",
@@ -666,6 +912,7 @@ function App() {
                     padding: "8px 12px",
                     fontWeight: 800,
                     marginBottom: 16,
+                    borderRadius: 999,
                   }}
                 >
                   ЛИНЕЙКА ПОДПИСОК
@@ -691,6 +938,7 @@ function App() {
                   </div>
 
                   <div
+                    className="glass-card"
                     style={{
                       ...cardStyle,
                       borderColor: colors.greenBorder,
@@ -714,15 +962,18 @@ function App() {
                     marginTop: 18,
                   }}
                 >
-                  {boosterFeatures.map((feature) => (
+                  {boosterFeatures.map((feature, idx) => (
                     <div
                       key={feature}
+                      className="glass-card"
                       style={{
                         ...cardStyle,
                         background: colors.panelSoft,
                         padding: 14,
                         color: colors.softText,
                         lineHeight: 1.6,
+                        animation: `fadeUp .55s ease both`,
+                        animationDelay: `${0.04 * idx}s`,
                       }}
                     >
                       {feature}
@@ -736,6 +987,7 @@ function App() {
               {boosterPlans.map((plan, index) => (
                 <div
                   key={plan.id}
+                  className="glass-card plan-card fade-up"
                   style={{
                     ...cardStyle,
                     overflow: "hidden",
@@ -744,22 +996,26 @@ function App() {
                       isDark ? "0 18px 50px rgba(0,0,0,.35)" : "0 18px 40px rgba(15,23,42,.08)"
                     }`,
                     transform: `translateY(${index === 0 ? "0" : index === 1 ? "-4px" : "-8px"})`,
+                    animationDelay: `${0.1 + index * 0.08}s`,
                   }}
                 >
                   <div
+                    className="float-soft"
                     style={{
                       height: 132,
                       background: plan.accent,
                       position: "relative",
-                      borderBottom: "2px solid rgba(0,0,0,.2)",
+                      borderBottom: "1px solid rgba(0,0,0,.2)",
                       padding: 16,
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
+                      animationDelay: `${index * 0.4}s`,
                     }}
                   >
                     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                       <div
+                        className="badge-pop"
                         style={{
                           padding: "6px 10px",
                           fontSize: 10,
@@ -768,6 +1024,7 @@ function App() {
                           background:
                             plan.id === 1 ? "#fcd34d" : plan.id === 2 ? "#d946ef" : "#34d399",
                           color: plan.id === 2 ? "#fff" : "#111827",
+                          borderRadius: 999,
                         }}
                       >
                         {plan.label}
@@ -833,6 +1090,7 @@ function App() {
                       {plan.highlights.map((line) => (
                         <div
                           key={line}
+                          className="glass-card"
                           style={{
                             ...cardStyle,
                             background: colors.panelSoft,
@@ -846,6 +1104,7 @@ function App() {
                     </div>
 
                     <button
+                      className="shine-btn"
                       onClick={() => setSelectedPlan(plan)}
                       style={{
                         ...pixelButton("#86efac", "#111827"),
@@ -862,7 +1121,7 @@ function App() {
           </div>
         </section>
 
-        <section id="start" style={{ marginBottom: 48 }}>
+        <section id="start" className="fade-up" style={{ marginBottom: 48 }}>
           <div style={{ fontSize: 13, letterSpacing: ".2em", textTransform: "uppercase", color: colors.muted, marginBottom: 8 }}>
             Как начать играть
           </div>
@@ -884,8 +1143,17 @@ function App() {
               ["🎮 1. Установить Minecraft", "Запусти Minecraft Java Edition версии 1.21.4 и подготовь клиент к игре."],
               ["🎤 2. Поставить PlasmoVoice", "Установи мод PlasmoVoice Chat, потому что без него тебя могут кикнуть или выдать варн."],
               ["🚪 3. Зайти по IP", "Добавь сервер mc.abobaworld.xyz в список и заходи в мир AbobaWorld."],
-            ].map(([title, text]) => (
-              <div key={title} style={{ ...cardStyle, padding: 22 }}>
+            ].map(([title, text], idx) => (
+              <div
+                key={title}
+                className="glass-card"
+                style={{
+                  ...cardStyle,
+                  padding: 22,
+                  animation: "fadeUp .6s ease both",
+                  animationDelay: `${0.08 * idx}s`,
+                }}
+              >
                 <div style={{ fontSize: 22, fontWeight: 800 }}>{title}</div>
                 <div style={{ marginTop: 12, lineHeight: 1.7, color: colors.softText }}>{text}</div>
               </div>
@@ -893,7 +1161,7 @@ function App() {
           </div>
         </section>
 
-        <section id="about" style={{ marginBottom: 48 }}>
+        <section id="about" className="fade-up" style={{ marginBottom: 48 }}>
           <div
             className="about-grid"
             style={{
@@ -906,8 +1174,17 @@ function App() {
               ["🛡️ Честная игра", "На сервере ценятся адекватность, уважение к другим игрокам и игра без нечестных преимуществ."],
               ["👑 Титулы и поддержка", "Здесь можно не только играть, но и красиво выделиться на сервере, поддерживая развитие проекта."],
               ["🌍 Живой мир", "Постройки, города, общение, совместные истории и уютное выживание — всё это делает AbobaWorld местом, куда хочется возвращаться."],
-            ].map(([title, text]) => (
-              <div key={title} style={{ ...cardStyle, padding: 22 }}>
+            ].map(([title, text], idx) => (
+              <div
+                key={title}
+                className="glass-card"
+                style={{
+                  ...cardStyle,
+                  padding: 22,
+                  animation: "fadeUp .6s ease both",
+                  animationDelay: `${0.08 * idx}s`,
+                }}
+              >
                 <div style={{ fontSize: 24, fontWeight: 800 }}>{title}</div>
                 <div style={{ marginTop: 12, lineHeight: 1.7, color: colors.softText }}>{text}</div>
               </div>
@@ -915,7 +1192,7 @@ function App() {
           </div>
         </section>
 
-        <section id="contact" style={{ marginBottom: 48 }}>
+        <section id="contact" className="fade-up" style={{ marginBottom: 48 }}>
           <div style={{ fontSize: 13, letterSpacing: ".2em", textTransform: "uppercase", color: colors.muted, marginBottom: 8 }}>
             Связь с администрацией
           </div>
@@ -936,12 +1213,13 @@ function App() {
               marginTop: 20,
             }}
           >
-            <div style={{ ...cardStyle, padding: 22 }}>
+            <div className="glass-card live-panel" style={{ ...cardStyle, padding: 22 }}>
               <div style={{ fontSize: 28, fontWeight: 900 }}>Discord сервера</div>
               <div style={{ marginTop: 10, color: colors.softText }}>
                 Основной способ связи с администрацией и игроками проекта.
               </div>
               <button
+                className="shine-btn"
                 onClick={() => window.open("https://discord.gg/yy5JGzGz", "_blank")}
                 style={{ ...pixelButton("#6366f1", "#ffffff"), marginTop: 18 }}
               >
@@ -949,17 +1227,20 @@ function App() {
               </button>
             </div>
 
-            <div style={{ ...cardStyle, padding: 22 }}>
+            <div className="glass-card" style={{ ...cardStyle, padding: 22 }}>
               <div style={{ fontSize: 28, fontWeight: 900 }}>Теги администрации</div>
               <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-                {["@casper_932", "@neznaiu_gg"].map((admin) => (
+                {["@casper_932", "@neznaiu_gg"].map((admin, idx) => (
                   <div
                     key={admin}
+                    className="glass-card"
                     style={{
                       ...cardStyle,
                       background: colors.panelSoft,
                       padding: 14,
                       color: colors.text,
+                      animation: "fadeUp .5s ease both",
+                      animationDelay: `${0.08 * idx}s`,
                     }}
                   >
                     {admin}
@@ -970,7 +1251,7 @@ function App() {
           </div>
         </section>
 
-        <section id="rules" style={{ marginBottom: 48 }}>
+        <section id="rules" className="fade-up" style={{ marginBottom: 48 }}>
           <div style={{ fontSize: 13, letterSpacing: ".2em", textTransform: "uppercase", color: colors.muted, marginBottom: 8 }}>
             Правила сервера
           </div>
@@ -980,11 +1261,12 @@ function App() {
             сервера и не забывай про обязательный PlasmoVoice Chat.
           </p>
 
-          <div style={{ ...cardStyle, padding: 22, marginTop: 20 }}>
+          <div className="glass-card" style={{ ...cardStyle, padding: 22, marginTop: 20 }}>
             <div style={{ display: "grid", gap: 14 }}>
               {ruleGroups.map((group) => (
                 <details
                   key={group.id}
+                  className="glass-card"
                   style={{
                     ...cardStyle,
                     background: colors.panelSoft,
@@ -998,6 +1280,7 @@ function App() {
                     {group.items.map((item) => (
                       <div
                         key={item}
+                        className="glass-card"
                         style={{
                           ...cardStyle,
                           padding: 14,
@@ -1017,7 +1300,7 @@ function App() {
         </section>
 
         <footer
-          className="footer-grid"
+          className="footer-grid glass-card fade-up"
           style={{
             ...cardStyle,
             padding: 24,
@@ -1039,12 +1322,14 @@ function App() {
 
           <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", flexWrap: "wrap" }}>
             <button
+              className="shine-btn"
               onClick={copyIp}
               style={pixelButton(isDark ? "#18181b" : "#ffffff", colors.text)}
             >
               {copied ? "Скопировано" : "Скопировать IP"}
             </button>
             <button
+              className="shine-btn"
               onClick={() => window.open("https://discord.gg/yy5JGzGz", "_blank")}
               style={pixelButton("#6366f1", "#ffffff")}
             >
@@ -1065,9 +1350,11 @@ function App() {
             placeItems: "center",
             padding: 20,
             zIndex: 100,
+            backdropFilter: "blur(8px)",
           }}
         >
           <div
+            className="fade-up"
             onClick={(e) => e.stopPropagation()}
             style={{
               width: "min(620px, 100%)",
@@ -1096,6 +1383,7 @@ function App() {
                   </div>
 
                   <button
+                    className="shine-btn"
                     onClick={() => setSelectedPlan(null)}
                     style={pixelButton(isDark ? "#18181b" : "#f3f4f6", colors.text)}
                   >
@@ -1104,6 +1392,7 @@ function App() {
                 </div>
 
                 <div
+                  className="glass-card"
                   style={{
                     ...cardStyle,
                     background: colors.panelSoft,
@@ -1128,12 +1417,14 @@ function App() {
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div
+                        className="badge-pop"
                         style={{
                           display: "inline-block",
                           background: "#86efac",
                           color: "#111827",
                           padding: "6px 10px",
                           fontWeight: 900,
+                          borderRadius: 999,
                         }}
                       >
                         {selectedPlan.price} ₽
@@ -1159,11 +1450,13 @@ function App() {
                       width: "100%",
                       boxSizing: "border-box",
                       padding: "12px 14px",
-                      border: `2px solid ${colors.border}`,
+                      border: `1px solid ${colors.border}`,
                       background: isDark ? "#111318" : "#ffffff",
                       color: colors.text,
                       outline: "none",
                       fontSize: 15,
+                      borderRadius: 14,
+                      transition: "box-shadow .25s ease, border-color .25s ease",
                     }}
                   />
                   <div style={{ marginTop: 8, color: colors.muted, fontSize: 13 }}>
@@ -1182,6 +1475,7 @@ function App() {
                       <button
                         key={value}
                         onClick={() => setPaymentMethod(value as PaymentMethod)}
+                        className="glass-card"
                         style={{
                           ...cardStyle,
                           background:
@@ -1201,6 +1495,7 @@ function App() {
                 </div>
 
                 <label
+                  className="glass-card"
                   style={{
                     display: "flex",
                     gap: 12,
@@ -1252,6 +1547,7 @@ function App() {
                     ].map((item) => (
                       <div
                         key={item}
+                        className="glass-card"
                         style={{
                           ...cardStyle,
                           background: colors.panelSoft,
@@ -1267,6 +1563,7 @@ function App() {
                 )}
 
                 <div
+                  className="glass-card live-panel"
                   style={{
                     ...cardStyle,
                     borderColor: colors.greenBorder,
@@ -1284,6 +1581,7 @@ function App() {
                 </div>
 
                 <div
+                  className="glass-card"
                   style={{
                     ...cardStyle,
                     background: colors.panelSoft,
@@ -1321,6 +1619,7 @@ function App() {
                   </div>
 
                   <button
+                    className="shine-btn"
                     disabled={!nickname || !accepted || isPaying}
                     style={{
                       ...pixelButton("#86efac", "#111827"),
@@ -1334,13 +1633,14 @@ function App() {
                 </div>
               </>
             ) : (
-              <div>
+              <div className="fade-up">
                 <div style={{ fontSize: 34, fontWeight: 900 }}>✅ Оплата оформлена</div>
                 <div style={{ marginTop: 12, color: colors.softText, lineHeight: 1.7 }}>
                   Спасибо за поддержку проекта. В демо-режиме заказ помечен как оплаченный.
                 </div>
 
                 <div
+                  className="glass-card live-panel"
                   style={{
                     ...cardStyle,
                     background: colors.greenBg,
@@ -1359,12 +1659,14 @@ function App() {
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 20 }}>
                   <button
+                    className="shine-btn"
                     onClick={() => setSelectedPlan(null)}
                     style={pixelButton("#86efac", "#111827")}
                   >
                     Закрыть
                   </button>
                   <button
+                    className="shine-btn"
                     onClick={() => {
                       setPaymentDone(false);
                       setNickname("");
