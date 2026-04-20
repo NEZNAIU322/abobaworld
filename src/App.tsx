@@ -241,8 +241,9 @@ function App() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [isPaying, setIsPaying] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
+  const [openedYoomoney, setOpenedYoomoney] = useState(false);
 
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [mouse, setMouse] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
 
   const isDark = theme === "dark";
@@ -281,6 +282,7 @@ function App() {
       setPaymentMethod("card");
       setPaymentDone(false);
       setIsPaying(false);
+      setOpenedYoomoney(false);
     }
 
     return () => {
@@ -342,14 +344,43 @@ function App() {
 
   function startDemoPayment() {
     if (!selectedPlan || !nickname || !accepted) return;
+
+    if (paymentMethod === "yoomoney") {
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "https://yoomoney.ru/quickpay/confirm.xml";
+      form.target = "_blank";
+
+      const fields: Record<string, string> = {
+        receiver: "4100119517402168",
+        "quickpay-form": "button",
+        paymentType: "AC",
+        sum: String(selectedPlan.price),
+        targets: `Покупка ${selectedPlan.name}`,
+        label: orderId,
+        comment: `Ник: ${nickname}`,
+        successURL: window.location.href,
+      };
+
+      Object.entries(fields).forEach(([name, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+
+      setOpenedYoomoney(true);
+      return;
+    }
+
     setIsPaying(true);
 
     setTimeout(() => {
-      if (paymentMethod === "yoomoney") {
-        // Сюда потом можно подставить твою реальную ссылку ЮMoney
-        // window.open("https://yoomoney.ru/...", "_blank");
-      }
-
       setIsPaying(false);
       setPaymentDone(true);
     }, 2200);
@@ -1561,7 +1592,7 @@ function App() {
                       ["card", "💳 Банковская карта"],
                       ["sbp", "📱 СБП"],
                       ["crypto", "🪙 Криптовалюта"],
-                      ["yoomoney", "🟣 ЮMoney"],
+                      ["yoomoney", "🟣 ЮMoney (карта/кошелёк)"],
                     ].map(([value, label]) => (
                       <button
                         key={value}
@@ -1705,31 +1736,49 @@ function App() {
                       maxWidth: 360,
                     }}
                   >
-                    ЮMoney уже добавлен как способ оплаты. Для настоящего приёма денег
-                    нужно будет подставить твою реальную ссылку или форму ЮMoney.
+                    {paymentMethod === "yoomoney"
+                      ? "Если выбрать ЮMoney, откроется форма оплаты в новой вкладке. После перевода вернись на сайт и нажми «Я оплатил»."
+                      : "Для обычных демо-способов оплаты работает внутренняя анимация подтверждения."}
                   </div>
 
-                  <button
-                    className="shine-btn"
-                    disabled={!nickname || !accepted || isPaying}
-                    style={{
-                      ...pixelButton("#86efac", "#111827"),
-                      opacity: !nickname || !accepted || isPaying ? 0.55 : 1,
-                      cursor: !nickname || !accepted || isPaying ? "not-allowed" : "pointer",
-                      minWidth: 160,
-                    }}
-                    onClick={startDemoPayment}
-                  >
-                    {isPaying ? (
-                      <span className="loading-wrap">
-                        <span className="loading-dot" />
-                        <span className="loading-dot" />
-                        <span className="loading-dot" />
-                      </span>
-                    ) : (
-                      "Оплатить"
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      className="shine-btn"
+                      disabled={!nickname || !accepted || isPaying}
+                      style={{
+                        ...pixelButton("#86efac", "#111827"),
+                        opacity: !nickname || !accepted || isPaying ? 0.55 : 1,
+                        cursor: !nickname || !accepted || isPaying ? "not-allowed" : "pointer",
+                        minWidth: 160,
+                      }}
+                      onClick={startDemoPayment}
+                    >
+                      {isPaying ? (
+                        <span className="loading-wrap">
+                          <span className="loading-dot" />
+                          <span className="loading-dot" />
+                          <span className="loading-dot" />
+                        </span>
+                      ) : paymentMethod === "yoomoney" ? (
+                        "Перейти в ЮMoney"
+                      ) : (
+                        "Оплатить"
+                      )}
+                    </button>
+
+                    {paymentMethod === "yoomoney" && openedYoomoney && (
+                      <button
+                        className="shine-btn"
+                        style={{
+                          ...pixelButton(isDark ? "#18181b" : "#ffffff", colors.text),
+                          minWidth: 140,
+                        }}
+                        onClick={() => setPaymentDone(true)}
+                      >
+                        Я оплатил
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </div>
               </>
             ) : (
